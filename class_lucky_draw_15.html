@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>班級抽籤系統｜15人不重複抽籤</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root {
+      --card-bg: rgba(255, 255, 255, 0.94);
+      --card-border: rgba(226, 232, 240, 0.9);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    .name-display {
+      min-height: 150px;
+    }
+
+    #nameDisplay {
+      width: 100%;
+      overflow-wrap: break-word;
+      word-break: keep-all;
+      line-height: 1.15;
+      transition: font-size 0.15s ease;
+    }
+
+    .winner-pop {
+      animation: winnerPop 0.55s cubic-bezier(.2,.85,.25,1.25);
+    }
+
+    @keyframes winnerPop {
+      0%   { transform: scale(.72); opacity: .2; }
+      65%  { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .particle {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 100;
+      will-change: transform, opacity;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .history-item {
+      animation: slideIn .35s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+  <main class="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
+    <div class="w-full max-w-6xl">
+      <header class="text-center mb-6">
+        <div class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#3d6690] shadow-sm mb-4 border border-slate-200">
+          🎓 Classroom Lucky Draw
+        </div>
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+          班級抽籤系統
+        </h1>
+        <p class="mt-3 text-slate-500">
+          不重複抽籤｜抽過的學生不會再次被抽到
+        </p>
+      </header>
+
+      <div class="grid lg:grid-cols-[1.35fr_.85fr] gap-5">
+        <!-- Main draw panel -->
+        <section class="glass-card rounded-3xl p-5 sm:p-8">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-sm text-slate-500">目前狀態</p>
+              <h2 id="statusText" class="text-xl font-bold text-slate-800">準備抽籤</h2>
+            </div>
+
+            <div class="flex gap-2">
+              <div class="rounded-2xl bg-[#eaf1f8] px-4 py-2 text-center">
+                <div class="text-xs text-[#4e79a7] font-semibold">剩餘</div>
+                <div id="remainingCount" class="text-2xl font-black text-[#2f5c85]">15</div>
+              </div>
+              <div class="rounded-2xl bg-[#fdf1e4] px-4 py-2 text-center">
+                <div class="text-xs text-[#c97a2b] font-semibold">已抽</div>
+                <div id="drawnCount" class="text-2xl font-black text-[#a35f1b]">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="name-display relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#5b8ab8] to-[#3d6690] flex items-center justify-center px-4 py-10 shadow-xl">
+            <div class="absolute inset-0 opacity-20">
+              <div class="absolute -top-16 -left-12 w-56 h-56 bg-white rounded-full blur-3xl"></div>
+              <div class="absolute -bottom-20 -right-16 w-64 h-64 bg-[#f2994a] rounded-full blur-3xl"></div>
+            </div>
+
+            <div class="relative z-10 text-center">
+              <p id="displayHint" class="text-white/70 text-sm sm:text-base font-medium mb-2">
+                按下「開始抽籤」
+              </p>
+              <div id="nameDisplay"
+                   class="text-white text-4xl sm:text-6xl lg:text-7xl font-black tracking-wide break-words px-2 max-w-full">
+                READY
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 grid sm:grid-cols-2 gap-3">
+            <button
+              id="drawBtn"
+              class="rounded-2xl bg-[#4e79a7] hover:bg-[#3d6690] active:scale-[.98] transition px-6 py-4 text-white text-lg font-bold shadow-lg shadow-[#4e79a7]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4e79a7]"
+            >
+              🎲 開始抽籤
+            </button>
+
+            <button
+              id="resetBtn"
+              class="rounded-2xl bg-white hover:bg-slate-50 active:scale-[.98] transition px-6 py-4 text-slate-700 text-lg font-bold border border-slate-200"
+            >
+              ↻ 重新開始
+            </button>
+          </div>
+
+          <div id="messageBox"
+               class="hidden mt-4 rounded-2xl border px-4 py-3 text-sm font-medium"
+               role="alert">
+          </div>
+
+          <div class="mt-7">
+            <div class="flex items-center justify-between gap-3 mb-3">
+              <h3 class="font-bold text-slate-800">待抽名單</h3>
+              <span id="remainingBadge"
+                    class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                15 人
+              </span>
+            </div>
+            <div id="remainingList" class="flex flex-wrap gap-2"></div>
+          </div>
+        </section>
+
+        <!-- Settings/history -->
+        <aside class="space-y-5">
+          <section class="glass-card rounded-3xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="font-bold text-lg">學生名單</h2>
+                <p class="text-xs text-slate-500 mt-1">每行輸入一位學生，人數依名單自動調整</p>
+              </div>
+              <span id="inputCountBadge"
+                    class="rounded-full bg-[#eaf1f8] text-[#3d6690] px-3 py-1 text-xs font-bold">
+                15 人
+              </span>
+            </div>
+
+            <textarea
+              id="nameInput"
+              rows="9"
+              class="w-full rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm leading-7 outline-none focus:ring-4 focus:ring-[#dce8f3] focus:border-[#4e79a7] transition"
+              spellcheck="false"
+            >01 王成勝 Lucas
+02 朱侑宬 Will
+03 張皓 Jimmy
+04 陳宥序 Josh
+05 鍾灝 Harrison
+06 王芊涵 Jessica
+07 石懿 Mina
+08 邱采玥 Rachel
+09 張以彬 Isabelle
+10 張楚羚 Sophie
+11 郭品萱 PinXuan
+12 陳芯恬 Kelly
+13 陳奕蓁 Elliana
+14 詹艾潔 Chloe
+15 張暄婕 Abigail</textarea>
+
+            <button
+              id="applyBtn"
+              class="mt-3 w-full rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-[.98] transition px-4 py-3 text-white font-bold"
+            >
+              ✓ 套用名單
+            </button>
+
+            <p class="mt-3 text-xs leading-5 text-slate-400">
+              套用新名單會清除目前抽籤紀錄。人數不限，姓名不可空白，也不可重複。
+            </p>
+          </section>
+
+          <section class="glass-card rounded-3xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="font-bold text-lg">抽籤紀錄</h2>
+                <p class="text-xs text-slate-500 mt-1">最新結果會顯示在最上方</p>
+              </div>
+              <button
+                id="clearHistoryBtn"
+                class="text-xs font-semibold text-slate-400 hover:text-red-500 transition"
+              >
+                清除
+              </button>
+            </div>
+
+            <div id="historyList"
+                 class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+              <div id="emptyHistory"
+                   class="rounded-2xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
+                尚未抽出任何學生
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <footer class="text-center text-xs text-slate-400 mt-6">
+        抽籤結果只存在目前瀏覽器頁面中，重新整理後會重新開始。
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    // =========================
+    // 基本狀態
+    // =========================
+    // =========================
+    // 基本狀態
+    // 人數不再寫死，完全依名單實際輸入的行數決定
+    // =========================
+    const MIN_COUNT = 2;
+
+    let allNames = [];
+    let remainingNames = [];
+    let drawHistory = [];
+    let isDrawing = false;
+
+    const nameInput = document.getElementById('nameInput');
+    const inputCountBadge = document.getElementById('inputCountBadge');
+    const drawBtn = document.getElementById('drawBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const applyBtn = document.getElementById('applyBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const nameDisplay = document.getElementById('nameDisplay');
+    const displayHint = document.getElementById('displayHint');
+    const statusText = document.getElementById('statusText');
+    const remainingCount = document.getElementById('remainingCount');
+    const drawnCount = document.getElementById('drawnCount');
+    const remainingBadge = document.getElementById('remainingBadge');
+    const remainingList = document.getElementById('remainingList');
+    const historyList = document.getElementById('historyList');
+    const emptyHistory = document.getElementById('emptyHistory');
+    const messageBox = document.getElementById('messageBox');
+
+    // =========================
+    // 依姓名長度動態調整顯示字級，避免長姓名跑版
+    // =========================
+    function setDisplayName(text) {
+      nameDisplay.textContent = text;
+
+      const len = text.length;
+      let size;
+
+      if (len <= 6) {
+        size = 'clamp(2.5rem, 6vw, 4.5rem)';
+      } else if (len <= 10) {
+        size = 'clamp(2rem, 5vw, 3.5rem)';
+      } else if (len <= 14) {
+        size = 'clamp(1.6rem, 4vw, 2.75rem)';
+      } else {
+        size = 'clamp(1.3rem, 3.2vw, 2.25rem)';
+      }
+
+      nameDisplay.style.fontSize = size;
+    }
+
+    // =========================
+    // EaseOutQuart 緩動函數
+    // =========================
+    function easeOutQuart(t) {
+      return 1 - Math.pow(1 - t, 4);
+    }
+
+    // =========================
+    // 輸入處理 / 驗證
+    // =========================
+    function parseNames() {
+      return nameInput.value
+        .split('\n')
+        .map(name => name.trim())
+        .filter(Boolean);
+    }
+
+    function updateInputCount() {
+      const names = parseNames();
+      inputCountBadge.textContent = `${names.length} 人`;
+
+      inputCountBadge.className =
+        'rounded-full px-3 py-1 text-xs font-bold ' +
+        (names.length >= MIN_COUNT
+          ? 'bg-[#eaf1f8] text-[#3d6690]'
+          : 'bg-[#fdf1e4] text-[#c97a2b]');
+    }
+
+    function validateNames(names) {
+      if (names.length < MIN_COUNT) {
+        return `至少需要 ${MIN_COUNT} 位學生，目前共有 ${names.length} 位。`;
+      }
+
+      const normalized = names.map(n => n.toLocaleLowerCase());
+      const unique = new Set(normalized);
+
+      if (unique.size !== names.length) {
+        return '學生名單中有重複姓名，請修改後再套用。';
+      }
+
+      if (names.some(name => name.length > 30)) {
+        return '單一姓名請勿超過 30 個字元。';
+      }
+
+      return null;
+    }
+
+    function showMessage(message, type = 'error') {
+      const styles = {
+        error: 'bg-red-50 border-red-200 text-red-700',
+        success: 'bg-[#eaf1f8] border-[#c9dcee] text-[#3d6690]',
+        info: 'bg-[#fdf1e4] border-[#f5dcc0] text-[#c97a2b]'
+      };
+
+      messageBox.className =
+        `mt-4 rounded-2xl border px-4 py-3 text-sm font-medium ${styles[type]}`;
+      messageBox.textContent = message;
+      messageBox.classList.remove('hidden');
+
+      window.clearTimeout(showMessage.timer);
+      showMessage.timer = window.setTimeout(() => {
+        messageBox.classList.add('hidden');
+      }, 3500);
+    }
+
+    // =========================
+    // UI 更新
+    // =========================
+    function updateUI() {
+      remainingCount.textContent = remainingNames.length;
+      drawnCount.textContent = drawHistory.length;
+      remainingBadge.textContent = `${remainingNames.length} 人`;
+
+      remainingList.innerHTML = '';
+
+      remainingNames.forEach(name => {
+        const chip = document.createElement('span');
+        chip.className =
+          'rounded-full bg-white border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm';
+        chip.textContent = name;
+        remainingList.appendChild(chip);
+      });
+
+      if (remainingNames.length === 0 && allNames.length > 0) {
+        remainingList.innerHTML =
+          '<span class="text-sm text-slate-400">所有學生都已抽過 🎉</span>';
+        drawBtn.disabled = true;
+        drawBtn.textContent = '✅ 全部抽完';
+        statusText.textContent = '抽籤完成';
+      } else {
+        drawBtn.disabled = isDrawing || allNames.length === 0;
+        drawBtn.textContent = isDrawing ? '抽籤中…' : '🎲 開始抽籤';
+
+        if (!isDrawing && allNames.length > 0) {
+          statusText.textContent = drawHistory.length === 0 ? '準備抽籤' : '可繼續抽籤';
+        }
+      }
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = '';
+
+      if (drawHistory.length === 0) {
+        historyList.appendChild(emptyHistory);
+        emptyHistory.classList.remove('hidden');
+        return;
+      }
+
+      drawHistory
+        .slice()
+        .reverse()
+        .forEach((name, reverseIndex) => {
+          const drawNumber = drawHistory.length - reverseIndex;
+
+          const item = document.createElement('div');
+          item.className =
+            'history-item flex items-center justify-between gap-3 rounded-2xl bg-white border border-slate-100 px-4 py-3 shadow-sm';
+
+          item.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="w-8 h-8 shrink-0 rounded-full bg-[#eaf1f8] text-[#3d6690] flex items-center justify-center text-xs font-black">
+                ${drawNumber}
+              </div>
+              <span class="font-bold text-slate-700 break-words min-w-0"></span>
+            </div>
+            <span class="shrink-0 text-xs text-slate-400">已抽出</span>
+          `;
+
+          item.querySelector('span.font-bold').textContent = name;
+          historyList.appendChild(item);
+        });
+    }
+
+    // =========================
+    // 名單套用
+    // =========================
+    function applyNames(showSuccess = true) {
+      if (isDrawing) return false;
+
+      const names = parseNames();
+      const error = validateNames(names);
+
+      if (error) {
+        showMessage(error, 'error');
+        return false;
+      }
+
+      allNames = [...names];
+      remainingNames = [...names];
+      drawHistory = [];
+
+      setDisplayName('READY');
+      displayHint.textContent = '按下「開始抽籤」';
+      nameDisplay.classList.remove('winner-pop');
+
+      updateUI();
+      renderHistory();
+
+      if (showSuccess) {
+        showMessage('名單已套用，可以開始抽籤！', 'success');
+      }
+
+      return true;
+    }
+
+    // =========================
+    // 抽籤動畫
+    // 使用 EaseOutQuart 讓後半段逐漸減速
+    // =========================
+    function animateDraw(finalName) {
+      const duration = 2600;
+      const startTime = performance.now();
+
+      let lastSwitchTime = 0;
+      let currentInterval = 45;
+
+      function frame(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = easeOutQuart(progress);
+
+        // 隨進度拉長切換間隔，形成「越來越慢」的抽籤感
+        currentInterval = 45 + eased * 360;
+
+        if (now - lastSwitchTime >= currentInterval && progress < 0.97) {
+          const randomIndex = Math.floor(Math.random() * remainingNames.length);
+          setDisplayName(remainingNames[randomIndex]);
+          lastSwitchTime = now;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          finishDraw(finalName);
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function startDraw() {
+      if (isDrawing) return;
+
+      if (allNames.length === 0) {
+        showMessage('請先套用學生名單。', 'error');
+        return;
+      }
+
+      if (remainingNames.length === 0) {
+        showMessage('所有學生都已經抽過了，請按「重新開始」。', 'info');
+        return;
+      }
+
+      isDrawing = true;
+      statusText.textContent = '正在抽籤…';
+      displayHint.textContent = '幸運同學是…';
+      nameDisplay.classList.remove('winner-pop');
+      updateUI();
+
+      // 先決定最終結果，確保動畫不影響公平性
+      const finalIndex = Math.floor(Math.random() * remainingNames.length);
+      const finalName = remainingNames[finalIndex];
+
+      animateDraw(finalName);
+    }
+
+    function finishDraw(finalName) {
+      // 從 remainingNames 中刪除，所以不可能再次抽到
+      const index = remainingNames.indexOf(finalName);
+      if (index !== -1) {
+        remainingNames.splice(index, 1);
+      }
+
+      drawHistory.push(finalName);
+
+      setDisplayName(finalName);
+      displayHint.textContent = `第 ${drawHistory.length} 位抽中`;
+      statusText.textContent = '抽籤完成';
+
+      nameDisplay.classList.remove('winner-pop');
+      void nameDisplay.offsetWidth;
+      nameDisplay.classList.add('winner-pop');
+
+      createParticles();
+
+      isDrawing = false;
+      renderHistory();
+      updateUI();
+    }
+
+    // =========================
+    // 粒子特效
+    // 每顆粒子有獨立方向、距離、延遲與時序
+    // =========================
+    function createParticles() {
+      const rect = nameDisplay.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+
+      const particleCount = 42;
+
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+
+        const hue = Math.floor(Math.random() * 360);
+        particle.style.background = `hsl(${hue} 90% 60%)`;
+
+        const size = 5 + Math.random() * 9;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+
+        particle.style.left = `${originX}px`;
+        particle.style.top = `${originY}px`;
+
+        document.body.appendChild(particle);
+
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 90 + Math.random() * 260;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance + 60;
+        const rotation = (Math.random() - 0.5) * 900;
+        const delay = Math.random() * 180;
+        const duration = 650 + Math.random() * 800;
+
+        particle.animate(
+          [
+            {
+              transform: 'translate(-50%, -50%) scale(.5) rotate(0deg)',
+              opacity: 1
+            },
+            {
+              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1) rotate(${rotation}deg)`,
+              opacity: 0
+            }
+          ],
+          {
+            duration,
+            delay,
+            easing: 'cubic-bezier(.16,.84,.44,1)',
+            fill: 'forwards'
+          }
+        );
+
+        window.setTimeout(() => particle.remove(), delay + duration + 100);
+      }
+    }
+
+    // =========================
+    // 重置
+    // =========================
+    function resetDraw() {
+      if (isDrawing) return;
+
+      if (allNames.length === 0) {
+        applyNames(false);
+        return;
+      }
+
+      remainingNames = [...allNames];
+      drawHistory = [];
+
+      setDisplayName('READY');
+      displayHint.textContent = '按下「開始抽籤」';
+      statusText.textContent = '準備抽籤';
+      nameDisplay.classList.remove('winner-pop');
+
+      updateUI();
+      renderHistory();
+      showMessage(`抽籤已重置，${allNames.length} 位學生都重新加入待抽名單。`, 'info');
+    }
+
+    function clearHistoryOnly() {
+      if (isDrawing) return;
+
+      // 為維持「不重複」邏輯，清除紀錄同時等同完整重置。
+      remainingNames = [...allNames];
+      drawHistory = [];
+
+      setDisplayName('READY');
+      displayHint.textContent = '按下「開始抽籤」';
+      statusText.textContent = '準備抽籤';
+
+      updateUI();
+      renderHistory();
+      showMessage('抽籤紀錄已清除，所有學生重新加入待抽名單。', 'info');
+    }
+
+    // =========================
+    // 事件
+    // =========================
+    nameInput.addEventListener('input', updateInputCount);
+    applyBtn.addEventListener('click', () => applyNames(true));
+    drawBtn.addEventListener('click', startDraw);
+    resetBtn.addEventListener('click', resetDraw);
+    clearHistoryBtn.addEventListener('click', clearHistoryOnly);
+
+    // 鍵盤快捷鍵：Space 抽籤（游標不在 textarea 時）
+    document.addEventListener('keydown', event => {
+      if (
+        event.code === 'Space' &&
+        document.activeElement !== nameInput &&
+        !isDrawing
+      ) {
+        event.preventDefault();
+        startDraw();
+      }
+    });
+
+    // 初始載入
+    updateInputCount();
+    applyNames(false);
+  </script>
+</body>
+</html>
