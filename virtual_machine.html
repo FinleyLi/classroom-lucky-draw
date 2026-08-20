@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虛擬化平台評估　簡報</title>
+<style>
+  :root{
+    --navy:#132849;
+    --navy-deep:#0B1A30;
+    --gold:#B9922F;
+    --gold-soft:#E4C77A;
+    --paper:#F6F3EC;
+    --paper-alt:#ECE7DA;
+    --ink:#1B1B1B;
+    --muted:#6C6A62;
+    --line:#D8D2C0;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    height:100%;
+    background:var(--navy-deep);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+  }
+  .deck{
+    position:relative;
+    width:100%;
+    height:100vh;
+  }
+  .slide{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    background:var(--paper);
+    opacity:0;
+    transform:translateX(40px);
+    transition:opacity .5s ease, transform .5s ease;
+    pointer-events:none;
+  }
+  .slide.active{
+    opacity:1;
+    transform:translateX(0);
+    pointer-events:auto;
+    z-index:2;
+  }
+  .slide.prev{
+    transform:translateX(-40px);
+  }
+
+  /* ---- shared chrome ---- */
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:.28em;
+    color:var(--gold);
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:34px 56px 0 56px;
+  }
+  .topbar .brand{
+    font-size:12px;
+    letter-spacing:.2em;
+    color:var(--muted);
+  }
+  .content{
+    flex:1;
+    padding:18px 56px 30px 56px;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  h1.big{
+    font-size:44px;
+    font-weight:900;
+    color:var(--navy);
+    letter-spacing:.01em;
+    line-height:1.25;
+    margin-bottom:6px;
+  }
+  .accent-rule{
+    width:56px;
+    height:4px;
+    background:var(--gold);
+    margin:14px 0 26px 0;
+    border-radius:2px;
+  }
+  .footer-index{
+    position:absolute;
+    bottom:22px;
+    right:56px;
+    font-size:12px;
+    color:var(--muted);
+    letter-spacing:.1em;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---- title slide ---- */
+  .title-slide{
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(185,146,47,.14), transparent 45%),
+      radial-gradient(circle at 82% 78%, rgba(19,40,73,.10), transparent 40%),
+      var(--paper);
+  }
+  .title-slide .mark{
+    font-size:13px;
+    letter-spacing:.35em;
+    color:var(--gold);
+    font-weight:700;
+    margin-bottom:26px;
+  }
+  .title-slide h1{
+    font-size:68px;
+    font-weight:900;
+    color:var(--navy);
+    line-height:1.15;
+    margin-bottom:18px;
+  }
+  .title-slide .sub{
+    font-size:19px;
+    color:var(--muted);
+    letter-spacing:.02em;
+    margin-bottom:44px;
+  }
+  .title-slide .meta{
+    display:flex;
+    gap:40px;
+    font-size:13px;
+    color:var(--navy);
+    letter-spacing:.08em;
+  }
+  .title-slide .meta div{
+    padding-top:14px;
+    border-top:2px solid var(--gold);
+  }
+  .title-slide .meta span{
+    display:block;
+    color:var(--muted);
+    font-size:11px;
+    letter-spacing:.15em;
+    margin-top:4px;
+  }
+
+  /* ---- numeral badge ---- */
+  .numeral{
+    font-size:15px;
+    font-weight:700;
+    color:var(--navy);
+    background:var(--gold-soft);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:5px 14px 5px 10px;
+    border-radius:999px;
+    margin-bottom:14px;
+    letter-spacing:.05em;
+  }
+  .numeral b{
+    background:var(--navy);
+    color:var(--white);
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+  }
+
+  /* ---- bullet blocks ---- */
+  .lead{
+    font-size:16px;
+    color:var(--ink);
+    line-height:1.85;
+    max-width:920px;
+    margin-bottom:18px;
+  }
+  .lead b{ color:var(--navy); }
+  .highlight-box{
+    background:var(--navy);
+    color:var(--white);
+    padding:16px 22px;
+    border-radius:8px;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.02em;
+    display:inline-block;
+    margin-top:6px;
+    box-shadow:0 8px 20px rgba(19,40,73,.18);
+  }
+  .highlight-box .tag{
+    color:var(--gold-soft);
+    font-weight:700;
+    margin-right:10px;
+  }
+  .highlight-box.secondary{
+    background:transparent;
+    color:var(--navy);
+    border:2px solid var(--navy);
+    box-shadow:none;
+  }
+  .highlight-box.secondary .tag{
+    color:var(--gold);
+  }
+  .exp-line{
+    font-size:14.5px;
+    color:var(--navy);
+    background:var(--paper-alt);
+    border-left:4px solid var(--gold);
+    padding:12px 18px;
+    border-radius:6px;
+    margin-bottom:18px;
+    line-height:1.75;
+  }
+  .exp-line b{ color:var(--navy-deep); }
+  .exp-line .warn{
+    display:block;
+    color:#8A4B12;
+    font-size:12.5px;
+    margin-top:4px;
+    font-weight:600;
+  }
+
+  .twocol{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:28px;
+    margin-top:8px;
+    flex:1;
+    min-height:0;
+  }
+  .card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px 22px;
+  }
+  .card h3{
+    font-size:14px;
+    color:var(--navy);
+    font-weight:700;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h3::before{
+    content:"";
+    width:8px;height:8px;
+    background:var(--gold);
+    border-radius:2px;
+    display:inline-block;
+  }
+  .card p, .card li{
+    font-size:14.5px;
+    line-height:1.75;
+    color:var(--ink);
+  }
+  .card ul{ padding-left:18px; }
+  .card li{ margin-bottom:6px; }
+  .flow{
+    font-family:"Noto Sans TC",sans-serif;
+    font-size:14px;
+    color:var(--navy);
+    background:var(--paper-alt);
+    border-radius:8px;
+    padding:12px 14px;
+    line-height:2;
+    font-weight:600;
+    word-break:break-word;
+  }
+  .note{
+    font-size:12.5px;
+    color:var(--muted);
+    font-style:italic;
+    margin-top:10px;
+  }
+  .note a{
+    color:var(--gold);
+    font-style:normal;
+    font-weight:600;
+    text-decoration:underline;
+  }
+  .note a:hover{ color:var(--navy); }
+
+  /* ---- cluster diagram (slide 3) ---- */
+  .cluster-wrap{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:0;
+  }
+  .cluster-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:36px;
+  }
+  .cluster-box{
+    background:var(--white);
+    border:2px solid var(--navy);
+    border-radius:12px;
+    padding:20px 24px;
+    position:relative;
+  }
+  .cluster-box .label{
+    position:absolute;
+    top:-13px;
+    left:20px;
+    background:var(--navy);
+    color:var(--white);
+    font-size:12px;
+    font-weight:700;
+    padding:3px 12px;
+    border-radius:999px;
+    letter-spacing:.05em;
+  }
+  .cluster-box .svc{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .svc-pill{
+    background:var(--paper-alt);
+    border:1px solid var(--line);
+    color:var(--navy);
+    font-size:13px;
+    font-weight:600;
+    padding:6px 14px;
+    border-radius:999px;
+  }
+  .cluster-box .storage-note{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:12px;
+  }
+  .connector{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:42px;
+    position:relative;
+  }
+  .connector::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:50%;
+    width:2px;
+    height:100%;
+    background:var(--gold);
+    opacity:.6;
+  }
+  .nas-box{
+    margin:0 auto;
+    background:var(--gold-soft);
+    border:2px solid var(--gold);
+    border-radius:12px;
+    padding:14px 30px;
+    text-align:center;
+    max-width:520px;
+  }
+  .nas-box .label{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.1em;
+    color:#6b4f0a;
+    margin-bottom:6px;
+  }
+  .nas-box .items{
+    font-size:14px;
+    font-weight:600;
+    color:var(--navy-deep);
+  }
+
+  /* ---- comparison table (slide 4) ---- */
+  .table-wrap{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  table.cmp{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+    background:var(--white);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 4px 18px rgba(19,40,73,.06);
+  }
+  table.cmp th{
+    background:var(--navy);
+    color:var(--white);
+    font-size:13px;
+    font-weight:700;
+    padding:11px 14px;
+    text-align:left;
+    letter-spacing:.02em;
+  }
+  table.cmp th:first-child{
+    width:13%;
+    background:var(--navy-deep);
+  }
+  table.cmp td{
+    font-size:12.6px;
+    line-height:1.55;
+    padding:11px 14px;
+    border-top:1px solid var(--line);
+    vertical-align:top;
+    color:var(--ink);
+  }
+  table.cmp td:first-child{
+    font-weight:700;
+    color:var(--navy);
+    background:var(--paper-alt);
+  }
+  table.cmp tr:nth-child(even) td{
+    background:#FBFAF6;
+  }
+  table.cmp tr:nth-child(even) td:first-child{
+    background:var(--paper-alt);
+  }
+  table.cmp td.s3{
+    position:relative;
+  }
+  .s3-badge{
+    display:inline-block;
+    background:var(--gold);
+    color:var(--navy-deep);
+    font-size:10.5px;
+    font-weight:800;
+    padding:1px 7px;
+    border-radius:5px;
+    margin-left:6px;
+    letter-spacing:.03em;
+    vertical-align:middle;
+  }
+
+  /* ---- nav controls ---- */
+  .nav-dots{
+    position:fixed;
+    bottom:24px;
+    left:56px;
+    display:flex;
+    gap:9px;
+    z-index:10;
+  }
+  .dot{
+    width:8px;height:8px;
+    border-radius:50%;
+    background:rgba(255,255,255,.28);
+    cursor:pointer;
+    transition:.25s;
+  }
+  .dot.active{
+    background:var(--gold);
+    width:22px;
+    border-radius:5px;
+  }
+  .arrow-btn{
+    position:fixed;
+    top:50%;
+    transform:translateY(-50%);
+    width:44px;height:44px;
+    border-radius:50%;
+    border:none;
+    background:rgba(255,255,255,.85);
+    color:var(--navy);
+    font-size:18px;
+    cursor:pointer;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.15);
+    transition:.2s;
+  }
+  .arrow-btn:hover{ background:var(--gold); color:var(--white); }
+  .arrow-btn.left{ left:18px; }
+  .arrow-btn.right{ right:18px; }
+  .arrow-btn:disabled{ opacity:.25; cursor:default; }
+  .arrow-btn:disabled:hover{ background:rgba(255,255,255,.85); color:var(--navy); }
+
+  @media (max-width:900px){
+    .twocol,.cluster-row{ grid-template-columns:1fr; }
+    h1.big{ font-size:30px; }
+    .title-slide h1{ font-size:38px; }
+    .content{ padding:14px 22px 22px 22px; }
+    .topbar{ padding:22px 22px 0 22px; }
+    .arrow-btn{ display:none; }
+    table.cmp td, table.cmp th{ font-size:11px; padding:8px 8px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 0 — TITLE -->
+  <section class="slide title-slide active">
+    <div class="mark">INFRASTRUCTURE BRIEFING</div>
+    <h1>虛擬化平台評估</h1>
+    <div class="sub">Nutanix 續約評估與後續平台規劃方向</div>
+    <div class="meta">
+      <div>PROXMOX VE<span>NEW</span></div>
+      <div>HYPER-V<span>PROPOSED</span></div>
+      <div>NUTANIX<span>INCUMBENT</span></div>
+      <div>VMWARE<span>REFERENCE ONLY</span></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 1 — 一、現況與背景 -->
+  <section class="slide">
+    <div class="topbar">
+      <div class="brand">虛擬化平台評估　簡報</div>
+      <div class="brand">01 / 04</div>
+    </div>
+    <div class="content">
+      <div class="numeral"><b>1</b>現況與背景</div>
+      <h1 class="big">評估虛擬化平台</h1>
+      <div class="accent-rule"></div>
+      <div class="lead">
+        中心現行虛擬化平台為 <b>Nutanix</b>，因合約即將到期，需評估平台續約或既有 VM 移轉方式。
+      </div>
+      <div class="lead">
+        前次會議中，<b>Ellis 科長提出 Hyper-V 選項</b>，考量 Windows 環境本身即可使用 Hyper-V 功能。
+      </div>
+      <div class="exp-line">
+        <b>我自身經驗：</b>PVE 8（Proxmox VE 8）＋ vCenter 6 ＋ NAS 快照儲存
+        <span class="warn">備註：Proxmox VE 8 將於 2026 年 8 月 31 日進入 EOS， vCenter 6 於 2020 年 3 月 12 日進入 EOL。</span>
+      </div>
+      <div class="highlight-box">
+        <span class="tag">規劃方向</span>PVE 9 ＋ NAS（兩套 PVE Cluster），可參考 【世新大學】X【】
+      </div>
+      <div class="highlight-box secondary" style="margin-top:10px;">
+        <span class="tag">過渡方案</span>ESXi 8（短期移轉過渡用途，將於 2027 年 10 月 11 日進入 EOS）
+      </div>
+    </div>
+    <div class="footer-index">SECTION 01 — 現況與背景</div>
+  </section>
+
+  <!-- SLIDE 2 — 二、既有VM移轉方式 -->
+  <section class="slide">
+    <div class="topbar">
+      <div class="brand">虛擬化平台評估　簡報</div>
+      <div class="brand">02 / 04</div>
+    </div>
+    <div class="content">
+      <div class="numeral"><b>2</b>既有 VM 移轉方式</div>
+      <h1 class="big">原則採逐步移轉，不做一次性全面搬遷</h1>
+      <div class="accent-rule"></div>
+      <div class="twocol">
+        <div class="card">
+          <h3>可重新建置的服務</h3>
+          <div class="flow">
+            PVE 建立新 VM<br>
+            → 購置所需 Windows License<br>
+            → 重新安裝 OS／服務<br>
+            → 移轉資料<br>
+            → 測試後正式切換
+          </div>
+        </div>
+        <div class="card">
+          <h3>無法重新安裝的既有系統</h3>
+          <ul>
+            <li><b>優先方式：</b>Nutanix → Clonezilla → PVE</li>
+            <li><b>轉移困難時：</b>Nutanix → VMware Converter → ESXi → PVE</li>
+          </ul>
+          <p class="note">備註：ESXi 於此僅作為移轉過渡工具，非正式規劃中的虛擬化平台；且免費 ESXi 8 有實際限制，如：每台 VM 上限 8 vCPU、無法連接 vCenter（僅能單機管理）、不支援 vMotion／HA／DRS、無 Broadcom 官方支援，僅適用於非正式生產環境的短期過渡。</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer-index">SECTION 02 — 既有 VM 移轉方式</div>
+  </section>
+
+  <!-- SLIDE 3 — 三、兩套PVE Cluster規劃 -->
+  <section class="slide">
+    <div class="topbar">
+      <div class="brand">虛擬化平台評估　簡報</div>
+      <div class="brand">03 / 04</div>
+    </div>
+    <div class="content">
+      <div class="numeral"><b>3</b>兩套 PVE Cluster 規劃</div>
+      <h1 class="big">關鍵服務分散，避免單一叢集故障</h1>
+      <div class="accent-rule"></div>
+      <div class="cluster-wrap">
+        <div class="cluster-row">
+          <div class="cluster-box">
+            <span class="label">PVE CLUSTER A</span>
+            <div class="svc">
+              <span class="svc-pill">DNS1</span>
+              <span class="svc-pill">AD1</span>
+              <span class="svc-pill">其他 VM</span>
+            </div>
+            <div class="storage-note">VM 磁碟：本地／叢集儲存</div>
+          </div>
+          <div class="cluster-box">
+            <span class="label">PVE CLUSTER B</span>
+            <div class="svc">
+              <span class="svc-pill">DNS2</span>
+              <span class="svc-pill">AD2</span>
+              <span class="svc-pill">其他 VM</span>
+            </div>
+            <div class="storage-note">VM 磁碟：本地／叢集儲存</div>
+          </div>
+        </div>
+        <div class="connector"></div>
+        <div class="nas-box">
+          <div class="label">共用儲存 · NAS、Proxmox Backup Server</div>
+          <div class="items">ISO　·　VM Backup　·　LXC temp</div>
+        </div>
+      </div>
+      <div class="lead" style="margin-top:22px; font-size:14.5px;">
+        DNS1／DNS2、AD1／AD2 分別部署於不同 Cluster，提升關鍵基礎服務冗餘能力；NAS 不作為正式 VM 執行儲存，主要作為 PBS 備份目標，PBS 亦可另外設定 S3 相容物件儲存作為備援（詳見「四、平台比較」）。
+      </div>
+    </div>
+    <div class="footer-index">SECTION 03 — 兩套 PVE Cluster 規劃</div>
+  </section>
+
+  <!-- SLIDE 4 — 四、平台比較 -->
+  <section class="slide">
+    <div class="topbar">
+      <div class="brand">虛擬化平台評估　簡報</div>
+      <div class="brand">04 / 04</div>
+    </div>
+    <div class="content">
+      <div class="numeral"><b>4</b>平台比較</div>
+      <h1 class="big" style="font-size:32px;">Proxmox VE vs Hyper-V vs Nutanix AHV vs VMware vSphere</h1>
+      <div class="accent-rule" style="margin:10px 0 16px 0;"></div>
+      <div class="table-wrap">
+        <table class="cmp">
+          <thead>
+            <tr>
+              <th>評估項目</th>
+              <th>Proxmox VE</th>
+              <th>Hyper-V</th>
+              <th>Nutanix AHV</th>
+              <th>VMware vSphere</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>授權成本</td>
+              <td>核心功能免費；支援訂閱自 EUR 120／socket／年起（Community 層級）</td>
+              <td>隨 Windows Server 授權內含，另需 Windows Server 授權費用</td>
+              <td>依節點訂閱，per-TiB／per-core 計費</td>
+              <td>Broadcom 收購後改訂閱制，取消永久授權，並有最低核心數綁定套裝</td>
+            </tr>
+            <tr>
+              <td>商業模式</td>
+              <td>核心開源免費，選配訂閱支援</td>
+              <td>隨 Windows Server 授權內含，成本綁定於 Windows Server 授權</td>
+              <td>依節點訂閱制，三節點為最低部署門檻</td>
+              <td>訂閱制、套裝組合（VMware Cloud Foundation／vSphere Foundation），並有最低核心數綁定計費</td>
+            </tr>
+            <tr>
+              <td>Container 支援</td>
+              <td>原生支援 LXC，Docker 需透過 VM 執行</td>
+              <td>Windows Containers、WSL2</td>
+              <td>透過 Nutanix Kubernetes Engine 支援 Kubernetes</td>
+              <td>透過 Tanzu Kubernetes Grid 支援容器編排</td>
+            </tr>
+            <tr>
+              <td>Backup</td>
+              <td class="s3">以 NAS 為主要備份目標、Proxmox Backup Server<span class="s3-badge">另支援 S3 相容儲存</span>；Veeam（2024 年起支援）</td>
+              <td>Veeam、Azure Backup、原生備份功能</td>
+              <td>Nutanix Mine、Veeam、HYCU</td>
+              <td>過往經驗使用Synology Active Backup for Business 為主要備份方案</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:12px;">
+          資料來源：<a href="https://virtually.pro/proxmox-vs-hyper-v-vs-nutanix-vmware-replacement/" target="_blank" rel="noopener">Virtually Pro（2026）〈Proxmox vs Hyper-V vs Nutanix – VMware Replacement Comparison〉</a>；<a href="https://www.horizoniq.com/blog/nutanix-vs-vmware-vs-proxmox/" target="_blank" rel="noopener">HorizonIQ（2025 年 8 月）〈Nutanix vs VMware vs Proxmox〉</a>。VMware 欄位僅列來源明確提及之內容；PVE 授權金額已依 Proxmox 官方 2026 年公告價格核對更新；PBS 支援 S3 相容物件儲存為官方既有功能之補充說明。實際功能、授權及價格仍以各原廠最新公告為準。
+        </div>
+      </div>
+    </div>
+    <div class="footer-index">SECTION 04 — 平台比較</div>
+  </section>
+
+</div>
+
+<button class="arrow-btn left" id="prevBtn" aria-label="上一頁">‹</button>
+<button class="arrow-btn right" id="nextBtn" aria-label="下一頁">›</button>
+<div class="nav-dots" id="dots"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsWrap = document.getElementById('dots');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  let current = 0;
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(d);
+  });
+  const dots = document.querySelectorAll('.dot');
+
+  function render(){
+    slides.forEach((s, i) => {
+      s.classList.remove('active','prev');
+      if(i === current) s.classList.add('active');
+      else if(i < current) s.classList.add('prev');
+    });
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === slides.length - 1;
+  }
+
+  function goTo(i){
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    render();
+  }
+
+  prevBtn.addEventListener('click', () => goTo(current - 1));
+  nextBtn.addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight' || e.key === 'PageDown') goTo(current + 1);
+    if(e.key === 'ArrowLeft' || e.key === 'PageUp') goTo(current - 1);
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if(Math.abs(dx) > 50){ dx > 0 ? goTo(current - 1) : goTo(current + 1); }
+  });
+
+  render();
+</script>
+
+</body>
+</html>
